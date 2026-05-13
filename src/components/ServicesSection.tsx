@@ -10,18 +10,23 @@ import webAppVideo from "@/assets/Web App Development.mp4";
 import websiteVideo from "@/assets/Website Design and Development Section.mp4";
 
 type ServiceCardProps = {
+  id?: string;
   title: ReactNode;
   videoSrc: string;
   showDivider?: boolean;
 };
 
 const ServiceCard = ({
+  id,
   title,
   videoSrc,
   showDivider = true,
 }: ServiceCardProps) => {
   return (
-    <div className="relative group p-8 md:p-12 aspect-square md:aspect-auto md:h-[400px] border-b border-white/10 overflow-hidden flex flex-col justify-between">
+    <div
+      id={id}
+      className="relative group scroll-mt-24 p-8 md:p-12 aspect-square md:aspect-auto md:h-[400px] border-b border-white/10 overflow-hidden flex flex-col justify-between"
+    >
       <video
         src={videoSrc}
         className="absolute inset-0 w-full h-full object-cover opacity-60 transition duration-500 group-hover:opacity-80 group-hover:scale-105"
@@ -55,30 +60,37 @@ const services = [
         Web Design & <br /> Development
       </>
     ),
+    id: "service-website-design",
     videoSrc: websiteVideo,
   },
   {
     title: "Mobile Apps",
+    id: "service-mobile-apps",
     videoSrc: mobileAppVideo,
   },
   {
     title: "Web Apps",
+    id: "service-web-apps",
     videoSrc: webAppVideo,
   },
   {
     title: "ERP",
+    id: "service-crm-erp",
     videoSrc: erpVideo,
   },
   {
     title: "DevOps",
+    id: "service-devops",
     videoSrc: devopsVideo,
   },
   {
     title: "SEO",
+    id: "service-seo",
     videoSrc: seoVideo,
   },
   {
     title: "SAAS",
+    id: "service-saas",
     videoSrc: saasVideo,
   },
   {
@@ -87,6 +99,7 @@ const services = [
         Social Media <br /> Management
       </>
     ),
+    id: "service-social-media",
     videoSrc: socialMediaVideo,
   },
 ];
@@ -101,9 +114,10 @@ const ServicesSection = () => {
               <>
                 Brand Identity <br /> Creation
               </>
-            }
-            videoSrc={brandIdentityVideo}
-          />
+          }
+          id="service-brand-identity"
+          videoSrc={brandIdentityVideo}
+        />
         </div>
 
         {/* Row 1, Col 2-3: Key Services */}
@@ -123,6 +137,7 @@ const ServicesSection = () => {
           <div key={index} className="order-3">
             <ServiceCard
               title={service.title}
+              id={service.id}
               videoSrc={service.videoSrc}
               showDivider={index % 3 !== 2}
             />

@@ -2,6 +2,7 @@ import { type WheelEvent, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { Link } from "react-router-dom";
 import brandIdentityVideo from "@/assets/Brand Identity Creation Section.mp4";
 import devopsVideo from "@/assets/Devops Section.mp4";
 import erpVideo from "@/assets/ERP Section.mp4";
@@ -18,18 +19,19 @@ type DrawerItem = {
   title: string;
   eyebrow: string;
   video: string;
+  href: string;
 };
 
 const serviceItems: DrawerItem[] = [
-  { title: "Brand Identity", eyebrow: "Strategy / Identity", video: brandIdentityVideo },
-  { title: "Website Design", eyebrow: "Design / Development", video: websiteVideo },
-  { title: "Mobile Apps", eyebrow: "iOS / Android", video: mobileAppVideo },
-  { title: "Web Apps", eyebrow: "SaaS / Platforms", video: webAppVideo },
-  { title: "CRM ERP", eyebrow: "Business Systems", video: erpVideo },
-  { title: "DevOps", eyebrow: "Cloud / Automation", video: devopsVideo },
-  { title: "SEO", eyebrow: "Search / Growth", video: seoVideo },
-  { title: "SAAS", eyebrow: "Product Systems", video: saasVideo },
-  { title: "Social Media", eyebrow: "Campaigns / Content", video: socialMediaVideo },
+  { title: "Brand Identity", eyebrow: "Strategy / Identity", video: brandIdentityVideo, href: "#service-brand-identity" },
+  { title: "Website Design", eyebrow: "Design / Development", video: websiteVideo, href: "#service-website-design" },
+  { title: "Mobile Apps", eyebrow: "iOS / Android", video: mobileAppVideo, href: "#service-mobile-apps" },
+  { title: "Web Apps", eyebrow: "SaaS / Platforms", video: webAppVideo, href: "#service-web-apps" },
+  { title: "CRM ERP", eyebrow: "Business Systems", video: erpVideo, href: "#service-crm-erp" },
+  { title: "DevOps", eyebrow: "Cloud / Automation", video: devopsVideo, href: "#service-devops" },
+  { title: "SEO", eyebrow: "Search / Growth", video: seoVideo, href: "#service-seo" },
+  { title: "SAAS", eyebrow: "Product Systems", video: saasVideo, href: "#service-saas" },
+  { title: "Social Media", eyebrow: "Campaigns / Content", video: socialMediaVideo, href: "#service-social-media" },
 ];
 
 const caseStudyVideos = import.meta.glob("/src/case studies/**/*.mp4", {
@@ -55,36 +57,64 @@ const workItems = Object.entries(caseStudyVideos)
     if (items.some((item) => item.title === workLabels[folder]?.title)) return items;
 
     const label = workLabels[folder] || { title: folder, eyebrow: "Case Study" };
-    items.push({ ...label, video });
+    items.push({ ...label, video, href: "/case-studies" });
     return items;
   }, [])
   .slice(0, 8);
 
-const DrawerCards = ({ items }: { items: DrawerItem[] }) => (
+const DrawerCardContent = ({ item }: { item: DrawerItem }) => (
+  <>
+    <video
+      src={item.video}
+      className="absolute inset-0 h-full w-full object-cover opacity-65 transition duration-700 group-hover:scale-105 group-hover:opacity-90"
+      autoPlay
+      muted
+      loop
+      playsInline
+    />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
+    <div className="absolute bottom-4 left-4 right-4">
+      <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">
+        {item.eyebrow}
+      </p>
+      <h3 className="mt-1 text-lg md:text-xl font-bold leading-tight text-white">
+        {item.title}
+      </h3>
+    </div>
+  </>
+);
+
+const DrawerCards = ({
+  items,
+  onSelect,
+}: {
+  items: DrawerItem[];
+  onSelect: (item: DrawerItem) => void;
+}) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
     {items.map((item) => (
-      <div
-        key={item.title}
-        className="group relative aspect-[5/4] overflow-hidden rounded-md border border-white/10 bg-white/[0.04]"
-      >
-        <video
-          src={item.video}
-          className="absolute inset-0 h-full w-full object-cover opacity-65 transition duration-700 group-hover:scale-105 group-hover:opacity-90"
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
-        <div className="absolute bottom-4 left-4 right-4">
-          <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">
-            {item.eyebrow}
-          </p>
-          <h3 className="mt-1 text-lg md:text-xl font-bold leading-tight text-white">
-            {item.title}
-          </h3>
-        </div>
-      </div>
+      item.href.startsWith("#") ? (
+        <a
+          key={item.title}
+          href={item.href}
+          onClick={(event) => {
+            event.preventDefault();
+            onSelect(item);
+          }}
+          className="group relative block aspect-[5/4] overflow-hidden rounded-md border border-white/10 bg-white/[0.04] interactive"
+        >
+          <DrawerCardContent item={item} />
+        </a>
+      ) : (
+        <Link
+          key={item.title}
+          to={item.href}
+          onClick={() => onSelect(item)}
+          className="group relative block aspect-[5/4] overflow-hidden rounded-md border border-white/10 bg-white/[0.04] interactive"
+        >
+          <DrawerCardContent item={item} />
+        </Link>
+      )
     ))}
   </div>
 );
@@ -98,6 +128,18 @@ const HeroSection = () => {
 
   const scrollTo = (href: string) => {
     document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleDrawerSelect = (item: DrawerItem) => {
+    cancelClose();
+    setHiddenLabel(null);
+
+    if (item.href.startsWith("#")) {
+      document.querySelector(item.href)?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    const drawer = item.href.startsWith("#") ? "services" : "work";
+    closeDrawer(drawer, 0);
   };
 
   const handleDrawerWheel = (event: WheelEvent<HTMLDivElement>) => {
@@ -214,7 +256,7 @@ const HeroSection = () => {
               Case Studies
             </h2>
           </div>
-          <DrawerCards items={workItems} />
+          <DrawerCards items={workItems} onSelect={handleDrawerSelect} />
         </div>
       </aside>
 
@@ -239,7 +281,7 @@ const HeroSection = () => {
               Services
             </h2>
           </div>
-          <DrawerCards items={serviceItems} />
+          <DrawerCards items={serviceItems} onSelect={handleDrawerSelect} />
         </div>
       </aside>
 
