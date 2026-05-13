@@ -5,13 +5,15 @@ import { useNavigate, useLocation } from "react-router-dom";
 const navItems = [
   { label: "HOME", number: "01", href: "/" },
   { label: "CASE STUDIES", number: "02", href: "/case-studies" },
-  { label: "LET'S CONNECT", number: "03", href: "/lets-connect" },
+  { label: "BLOG", number: "03", href: "/blog" },
+  { label: "LET'S CONNECT", number: "04", href: "/lets-connect" },
 ];
 
 const NavPill = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pillRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollSourceRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,11 +22,19 @@ const NavPill = () => {
     let rafId = 0;
     let lastProgress = -1;
     let ticking = false;
+    let activeScrollTarget: Window | HTMLElement = window;
 
     const computeProgress = () => {
+      const scrollSource = scrollSourceRef.current;
+
+      if (scrollSource) {
+        const scrollableHeight = scrollSource.scrollHeight - scrollSource.clientHeight;
+        return scrollableHeight > 0 ? Math.min(scrollSource.scrollTop / scrollableHeight, 1) : 0;
+      }
+
       const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      return docHeight > 0 ? Math.min(scrollTop / docHeight, 1) : 0;
+      const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+      return scrollableHeight > 0 ? Math.min(scrollTop / scrollableHeight, 1) : 0;
     };
 
     const update = () => {
@@ -43,11 +53,27 @@ const NavPill = () => {
       }
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    const bindScrollTarget = (target: Window | HTMLElement) => {
+      activeScrollTarget.removeEventListener("scroll", handleScroll);
+      activeScrollTarget = target;
+      activeScrollTarget.addEventListener("scroll", handleScroll, { passive: true });
+    };
+
+    const handleScrollSourceChange = (event: Event) => {
+      const source = (event as CustomEvent<{ source: HTMLElement | null }>).detail?.source ?? null;
+      scrollSourceRef.current = source;
+      bindScrollTarget(source ?? window);
+      lastProgress = -1;
+      update();
+    };
+
+    window.addEventListener("brandestiny:nav-scroll-source", handleScrollSourceChange);
+    bindScrollTarget(window);
     update();
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      activeScrollTarget.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("brandestiny:nav-scroll-source", handleScrollSourceChange);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, []);

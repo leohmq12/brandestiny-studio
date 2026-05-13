@@ -127,9 +127,8 @@ type CaseStudy = {
   images: string[];
 };
 
-type TransitionState = {
-  study: CaseStudy;
-  mode: "open" | "close";
+type CaseStudiesProps = {
+  pageType?: "case-studies" | "blog";
 };
 
 const titleFromFilename = (path: string) =>
@@ -200,24 +199,45 @@ const getStudyMedia = (study: CaseStudy) => {
   return media.length ? media.slice(0, 8) : study.videos.slice(0, 8);
 };
 
-const CaseStudies = () => {
+const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
   const pageRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const detailRef = useRef<HTMLElement>(null);
   const [selectedStudy, setSelectedStudy] = useState<CaseStudy | null>(null);
-  const [transitionState, setTransitionState] = useState<TransitionState | null>(
-    null,
-  );
 
   const caseStudies = useMemo(() => buildCaseStudies(), []);
+  const isBlog = pageType === "blog";
+  const pageTitle = isBlog ? "Blog" : "Case Studies";
+  const pageTitleMarkup = isBlog ? (
+    <>Blog</>
+  ) : (
+    <>
+      Case <br /> Studies
+    </>
+  );
+  const pageDescription = isBlog
+    ? "Insights from Brandestiny projects across websites, mobile apps, SaaS platforms, brand identity, CRM ERP systems, DevOps, SEO, and social media growth."
+    : "Explore Brandestiny case studies across website design, web app development, mobile app UI UX, CRM ERP software, DevOps automation, brand identity, product design, and social media campaigns.";
+  const introCopy = isBlog ? (
+    <>
+      Project stories and digital <br className="hidden md:block" />
+      insights from brand, product, <br className="hidden md:block" />
+      and growth work.
+    </>
+  ) : (
+    <>
+      Explorations of digital <br className="hidden md:block" />
+      products and brand <br className="hidden md:block" />
+      identities that push boundaries.
+    </>
+  );
 
   useEffect(() => {
     const title = selectedStudy
-      ? `${selectedStudy.title} | Brandestiny Case Study`
-      : "Case Studies | Website, App, Brand, CRM, ERP and DevOps Portfolio | Brandestiny";
-    const description =
-      selectedStudy?.summary ||
-      "Explore Brandestiny case studies across website design, web app development, mobile app UI UX, CRM ERP software, DevOps automation, brand identity, product design, and social media campaigns.";
+      ? `${selectedStudy.title} | Brandestiny ${isBlog ? "Blog" : "Case Study"}`
+      : `${pageTitle} | Website, App, Brand, CRM, ERP and DevOps Portfolio | Brandestiny`;
+    const description = selectedStudy?.summary || pageDescription;
 
     document.title = title;
 
@@ -232,6 +252,36 @@ const CaseStudies = () => {
     }
 
     metaDescription.content = description;
+  }, [isBlog, pageDescription, pageTitle, selectedStudy]);
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+
+    if (!selectedStudy || !detailRef.current) {
+      window.dispatchEvent(
+        new CustomEvent("brandestiny:nav-scroll-source", {
+          detail: { source: null },
+        }),
+      );
+      return undefined;
+    }
+
+    detailRef.current.scrollTop = 0;
+    document.body.style.overflow = "hidden";
+    window.dispatchEvent(
+      new CustomEvent("brandestiny:nav-scroll-source", {
+        detail: { source: detailRef.current },
+      }),
+    );
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.dispatchEvent(
+        new CustomEvent("brandestiny:nav-scroll-source", {
+          detail: { source: null },
+        }),
+      );
+    };
   }, [selectedStudy]);
 
   useGSAP(
@@ -264,7 +314,14 @@ const CaseStudies = () => {
 
   useGSAP(
     () => {
-      if (!selectedStudy || !pageRef.current) return;
+      if (!selectedStudy || !detailRef.current) return;
+      const scroller = detailRef.current;
+
+      gsap.fromTo(
+        scroller,
+        { autoAlpha: 0, y: 34 },
+        { autoAlpha: 1, y: 0, duration: 0.65, ease: "power3.out" },
+      );
 
       const panels = gsap.utils.toArray<HTMLElement>(".case-panel");
 
@@ -281,6 +338,7 @@ const CaseStudies = () => {
             ease: "power3.out",
             scrollTrigger: {
               trigger: panel,
+              scroller,
               start: "top 65%",
               end: "center center",
               scrub: 1,
@@ -297,6 +355,7 @@ const CaseStudies = () => {
             ease: "none",
             scrollTrigger: {
               trigger: panel,
+              scroller,
               start: "top bottom",
               end: "bottom top",
               scrub: 1,
@@ -310,32 +369,14 @@ const CaseStudies = () => {
 
   const openStudy = (study: CaseStudy) => {
     ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    setTransitionState({ study, mode: "open" });
-
-    window.setTimeout(() => {
-      setSelectedStudy(study);
-      window.scrollTo({ top: 0 });
-    }, 1300);
-
-    window.setTimeout(() => {
-      setTransitionState(null);
-    }, 2600);
+    setSelectedStudy(study);
   };
 
   const closeStudy = () => {
     if (!selectedStudy) return;
 
     ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    setTransitionState({ study: selectedStudy, mode: "close" });
-
-    window.setTimeout(() => {
-      setSelectedStudy(null);
-      window.scrollTo({ top: 0 });
-    }, 1300);
-
-    window.setTimeout(() => {
-      setTransitionState(null);
-    }, 2600);
+    setSelectedStudy(null);
   };
 
   const selectedMedia = selectedStudy ? getStudyMedia(selectedStudy) : [];
@@ -345,60 +386,6 @@ const CaseStudies = () => {
       <div ref={pageRef} className="bg-black text-white min-h-screen">
         <CustomCursor />
         <NavPill />
-
-        <style>{`
-          @keyframes caseRocketLaunch {
-            0% { transform: translate(-50%, 120vh) rotate(0deg); opacity: 0; }
-            18% { opacity: 1; }
-            62% { transform: translate(-50%, 12vh) rotate(0deg); opacity: 1; }
-            100% { transform: translate(-50%, -28vh) rotate(0deg); opacity: 0; }
-          }
-          @keyframes casePageCut {
-            0%, 34% { transform: scaleY(0); opacity: 0; }
-            52% { opacity: 1; }
-            74% { transform: scaleY(1); opacity: 1; }
-            100% { transform: scaleY(1); opacity: 0; }
-          }
-          @keyframes caseDoorLeft {
-            0%, 24% { transform: translateX(-105%); opacity: 0; }
-            40% { opacity: 1; }
-            52%, 68% { transform: translateX(0); opacity: 1; }
-            100% { transform: translateX(-105%); opacity: 0; }
-          }
-          @keyframes caseDoorRight {
-            0%, 24% { transform: translateX(105%); opacity: 0; }
-            40% { opacity: 1; }
-            52%, 68% { transform: translateX(0); opacity: 1; }
-            100% { transform: translateX(105%); opacity: 0; }
-          }
-          .case-rocket-transition .case-rocket {
-            animation: caseRocketLaunch 2.6s cubic-bezier(0.22, 0.8, 0.22, 1) forwards;
-          }
-          .case-rocket-transition .case-cut {
-            animation: casePageCut 2.35s cubic-bezier(0.22, 0.8, 0.22, 1) forwards;
-          }
-          .case-rocket-transition .case-door-left {
-            animation: caseDoorLeft 2.55s cubic-bezier(0.22, 0.8, 0.22, 1) forwards;
-          }
-          .case-rocket-transition .case-door-right {
-            animation: caseDoorRight 2.55s cubic-bezier(0.22, 0.8, 0.22, 1) forwards;
-          }
-        `}</style>
-
-        {transitionState && (
-          <div className="case-rocket-transition fixed inset-0 z-[80] pointer-events-none overflow-hidden bg-transparent">
-            <div className="case-door-left absolute top-0 left-0 h-full w-1/2 bg-black" />
-            <div className="case-door-right absolute top-0 right-0 h-full w-1/2 bg-black" />
-            <div className="case-cut absolute left-1/2 top-0 h-full w-[2px] origin-center bg-[#c8a77a] shadow-[0_0_30px_rgba(200,167,122,0.75)]" />
-            <div className="case-rocket absolute left-1/2 top-0 flex flex-col items-center">
-              <div className="h-16 w-9 rounded-t-full rounded-b-md border border-[#c8a77a]/80 bg-[#090909]/80 backdrop-blur-md shadow-[0_0_35px_rgba(200,167,122,0.32)]">
-                <div className="mx-auto mt-4 h-4 w-4 rounded-full border border-white/50 bg-white/15" />
-                <div className="mx-auto mt-5 h-2 w-5 rounded-full bg-[#c8a77a]/70" />
-              </div>
-              <div className="-mt-1 h-16 w-5 rounded-b-full bg-gradient-to-b from-[#c8a77a] via-white/50 to-transparent blur-[1px]" />
-            </div>
-          </div>
-        )}
 
         {!selectedStudy ? (
           <main
@@ -415,12 +402,10 @@ const CaseStudies = () => {
                     className="font-display font-bold tracking-tight leading-[0.9]"
                     style={{ fontSize: "clamp(3.5rem, 10vw, 7.5rem)" }}
                   >
-                    Case <br /> Studies
+                    {pageTitleMarkup}
                   </h1>
                   <div className="max-w-[280px] md:max-w-xs text-gray-500 font-grotesk text-xs md:text-sm uppercase tracking-widest leading-relaxed">
-                    Explorations of digital <br className="hidden md:block" />
-                    products and brand <br className="hidden md:block" />
-                    identities that push boundaries.
+                    {introCopy}
                   </div>
                   <div className="mt-8 md:mt-12 flex items-center gap-4 text-white/30 text-[10px] md:text-xs font-bold tracking-widest uppercase">
                     <span className="md:block hidden">Scroll to explore</span>
@@ -515,7 +500,11 @@ const CaseStudies = () => {
             </div>
           </main>
         ) : (
-          <main className="pt-24 md:pt-32">
+          <main
+            ref={detailRef}
+            className="fixed inset-0 z-[45] overflow-y-auto bg-black text-white no-scrollbar"
+            data-lenis-prevent
+          >
             <button
               type="button"
               onClick={closeStudy}
@@ -525,7 +514,7 @@ const CaseStudies = () => {
               <X className="h-5 w-5" />
             </button>
 
-            <section className="min-h-[88vh] px-6 md:px-12 lg:px-20 flex flex-col justify-end pb-12 md:pb-20 relative overflow-hidden">
+            <section className="min-h-screen px-6 md:px-12 lg:px-20 flex flex-col justify-end pb-12 md:pb-20 relative overflow-hidden">
               {selectedStudy.videos[0] && (
                 <video
                   src={selectedStudy.videos[0]}
@@ -543,7 +532,7 @@ const CaseStudies = () => {
                 className="relative z-10 self-start mb-12 inline-flex items-center gap-3 text-white/60 hover:text-white transition-colors text-xs uppercase tracking-[0.2em] font-bold"
               >
                 <ArrowLeft className="w-4 h-4" />
-                All case studies
+                All {isBlog ? "blog" : "case studies"}
               </button>
               <div className="relative z-10 max-w-5xl">
                 <p className="text-white/45 text-xs md:text-sm uppercase tracking-[0.3em] font-bold mb-5">
