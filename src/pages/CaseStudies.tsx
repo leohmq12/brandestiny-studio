@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -8,6 +9,8 @@ import CustomCursor from "@/components/CustomCursor";
 import NavPill from "@/components/NavPill";
 import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
+import footerLogo from "@/assets/brandestiny-footer-logo.png";
+import brandestinyLogo from "@/assets/brandestiny.png";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -205,6 +208,7 @@ const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
   const triggerRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLElement>(null);
   const [selectedStudy, setSelectedStudy] = useState<CaseStudy | null>(null);
+  const navigate = useNavigate();
 
   const caseStudies = useMemo(() => buildCaseStudies(), []);
   const isBlog = pageType === "blog";
@@ -286,7 +290,7 @@ const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
 
   useGSAP(
     () => {
-      if (selectedStudy || !sectionRef.current || !triggerRef.current) return;
+      if (!sectionRef.current || !triggerRef.current) return;
 
       const mm = gsap.matchMedia();
 
@@ -309,19 +313,48 @@ const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
 
       return () => mm.revert();
     },
-    { dependencies: [selectedStudy], scope: triggerRef },
+    { scope: triggerRef },
   );
 
   useGSAP(
     () => {
       if (!selectedStudy || !detailRef.current) return;
       const scroller = detailRef.current;
+      const logoIntro = scroller.querySelector(".case-open-logo");
+      const detailShell = scroller.querySelector(".case-detail-shell");
 
-      gsap.fromTo(
-        scroller,
-        { autoAlpha: 0, y: 34 },
-        { autoAlpha: 1, y: 0, duration: 0.65, ease: "power3.out" },
-      );
+      const introTimeline = gsap.timeline();
+
+      introTimeline
+        .fromTo(scroller, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.05 })
+        .fromTo(
+          logoIntro,
+          { autoAlpha: 1, rotate: 0, scale: 1.25 },
+          {
+            autoAlpha: 0,
+            rotate: 720,
+            scale: 0.18,
+            duration: 1,
+            ease: "power3.inOut",
+          },
+          0.05,
+        )
+        .fromTo(
+          detailShell,
+          {
+            autoAlpha: 0,
+            scale: 0.82,
+            clipPath: "inset(45% 45% 45% 45% round 28px)",
+          },
+          {
+            autoAlpha: 1,
+            scale: 1,
+            clipPath: "inset(0% 0% 0% 0% round 0px)",
+            duration: 0.95,
+            ease: "power3.out",
+          },
+          0.22,
+        );
 
       const panels = gsap.utils.toArray<HTMLElement>(".case-panel");
 
@@ -368,15 +401,20 @@ const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
   );
 
   const openStudy = (study: CaseStudy) => {
-    ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     setSelectedStudy(study);
   };
 
   const closeStudy = () => {
     if (!selectedStudy) return;
 
-    ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     setSelectedStudy(null);
+    window.requestAnimationFrame(() => ScrollTrigger.refresh());
+  };
+
+  const handleLetsConnect = () => {
+    setSelectedStudy(null);
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    navigate("/lets-connect");
   };
 
   const selectedMedia = selectedStudy ? getStudyMedia(selectedStudy) : [];
@@ -387,124 +425,135 @@ const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
         <CustomCursor />
         <NavPill />
 
-        {!selectedStudy ? (
-          <main
-            ref={triggerRef}
-            className="overflow-x-hidden pt-20 md:pt-32 pb-5 md:pb-5"
+        <main
+          ref={triggerRef}
+          className="overflow-x-hidden pt-20 md:pt-32 pb-5 md:pb-5"
+          aria-hidden={selectedStudy ? "true" : undefined}
+        >
+          <div
+            ref={sectionRef}
+            className="flex flex-col md:flex-row md:items-center h-auto md:h-[80vh] w-full md:w-fit px-6 md:px-20 gap-8 md:gap-12"
           >
-            <div
-              ref={sectionRef}
-              className="flex flex-col md:flex-row md:items-center h-auto md:h-[80vh] w-full md:w-fit px-6 md:px-20 gap-8 md:gap-12"
-            >
-              <div className="w-fit md:min-w-[500px] flex flex-col justify-center flex-shrink-0 pt-10 md:pt-0 h-auto md:h-full">
-                <div className="flex flex-col gap-6 md:gap-8">
-                  <h1
-                    className="font-display font-bold tracking-tight leading-[0.9]"
-                    style={{ fontSize: "clamp(3.5rem, 10vw, 7.5rem)" }}
-                  >
-                    {pageTitleMarkup}
-                  </h1>
-                  <div className="max-w-[280px] md:max-w-xs text-gray-500 font-grotesk text-xs md:text-sm uppercase tracking-widest leading-relaxed">
-                    {introCopy}
-                  </div>
-                  <div className="mt-8 md:mt-12 flex items-center gap-4 text-white/30 text-[10px] md:text-xs font-bold tracking-widest uppercase">
-                    <span className="md:block hidden">Scroll to explore</span>
-                    <span className="md:hidden block">Scroll down to explore</span>
-                    <div className="w-8 md:w-12 h-[1px] bg-white/10" />
-                  </div>
+            <div className="w-fit md:min-w-[500px] flex flex-col justify-center flex-shrink-0 pt-10 md:pt-0 h-auto md:h-full">
+              <div className="flex flex-col gap-6 md:gap-8">
+                <h1
+                  className="font-display font-bold tracking-tight leading-[0.9]"
+                  style={{ fontSize: "clamp(3.5rem, 10vw, 7.5rem)" }}
+                >
+                  {pageTitleMarkup}
+                </h1>
+                <div className="max-w-[280px] md:max-w-xs text-gray-500 font-grotesk text-xs md:text-sm uppercase tracking-widest leading-relaxed">
+                  {introCopy}
+                </div>
+                <div className="mt-8 md:mt-12 flex items-center gap-4 text-white/30 text-[10px] md:text-xs font-bold tracking-widest uppercase">
+                  <span className="md:block hidden">Scroll to explore</span>
+                  <span className="md:hidden block">Scroll down to explore</span>
+                  <div className="w-8 md:w-12 h-[1px] bg-white/10" />
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-center w-full md:h-full py-10 md:py-0">
-                {caseStudies.map((study) => {
-                  const poster = study.images[0];
-                  const video = study.videos[0];
+            <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-center w-full md:h-full py-10 md:py-0">
+              {caseStudies.map((study) => {
+                const poster = study.images[0];
+                const video = study.videos[0];
 
-                  return (
-                    <motion.button
-                      key={study.id}
-                      type="button"
-                      className="relative w-full text-left sm:w-[85vw] md:w-[380px] aspect-[4/5] md:aspect-[3/4] rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden group flex-shrink-0 max-h-[70vh] bg-white/5"
-                      whileHover={{ scale: 0.98 }}
-                      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                      onClick={() => openStudy(study)}
-                    >
-                      {video ? (
-                        <video
-                          src={video}
-                          poster={poster}
-                          className="w-full h-full object-cover opacity-80 transition-all duration-[1.5s] ease-out group-hover:scale-110 group-hover:opacity-100"
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                        />
-                      ) : (
-                        <img
-                          src={poster}
-                          alt={study.title}
-                          className="w-full h-full object-cover opacity-80 transition-all duration-[1.5s] ease-out group-hover:scale-110 group-hover:opacity-100"
-                          loading="lazy"
-                        />
-                      )}
+                return (
+                  <motion.button
+                    key={study.id}
+                    type="button"
+                    className="relative w-full text-left sm:w-[85vw] md:w-[380px] aspect-[4/5] md:aspect-[3/4] rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden group flex-shrink-0 max-h-[70vh] bg-white/5"
+                    whileHover={{ scale: 0.98 }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    onClick={() => openStudy(study)}
+                  >
+                    {video ? (
+                      <video
+                        src={video}
+                        poster={poster}
+                        className="w-full h-full object-cover opacity-80 transition-all duration-[1.5s] ease-out group-hover:scale-110 group-hover:opacity-100"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={poster}
+                        alt={study.title}
+                        className="w-full h-full object-cover opacity-80 transition-all duration-[1.5s] ease-out group-hover:scale-110 group-hover:opacity-100"
+                        loading="lazy"
+                      />
+                    )}
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-500" />
-                      <div className="absolute inset-x-8 top-8 h-[1px] scale-x-0 bg-white/50 transition-transform duration-700 group-hover:scale-x-100" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-500" />
+                    <div className="absolute inset-x-8 top-8 h-[1px] scale-x-0 bg-white/50 transition-transform duration-700 group-hover:scale-x-100" />
 
-                      {study.nda && (
-                        <div className="absolute top-6 left-6 md:top-10 md:left-10">
-                          <div className="bg-white text-black px-3 py-1 md:px-5 md:py-2 rounded-full shadow-2xl">
-                            <span className="text-[8px] md:text-[10px] font-bold tracking-widest uppercase">
-                              NDA
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10 md:right-10">
-                        <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-2 md:mb-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
-                          {study.cardTitle}
-                        </h3>
-                        <div className="h-[1px] w-0 group-hover:w-full bg-white/30 transition-all duration-700 mb-3 md:mb-4" />
-                        <p className="text-gray-400 text-[10px] md:text-xs lg:text-sm uppercase tracking-[0.2em] font-medium">
-                          {study.category}
-                        </p>
-                        <p
-                          className="mt-3 text-white/55 text-xs md:text-sm leading-relaxed max-w-[92%]"
-                          style={{
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                          }}
-                        >
-                          {study.cardSummary}
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {study.services.slice(0, 3).map((service) => (
-                            <span
-                              key={service}
-                              className="rounded-full border border-white/15 px-3 py-1 text-[9px] md:text-[10px] uppercase tracking-[0.14em] text-white/60"
-                            >
-                              {service}
-                            </span>
-                          ))}
+                    {study.nda && (
+                      <div className="absolute top-6 left-6 md:top-10 md:left-10">
+                        <div className="bg-white text-black px-3 py-1 md:px-5 md:py-2 rounded-full shadow-2xl">
+                          <span className="text-[8px] md:text-[10px] font-bold tracking-widest uppercase">
+                            NDA
+                          </span>
                         </div>
                       </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
+                    )}
 
-              <div className="w-2 md:w-4 flex-shrink-0 h-1" />
+                    <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10 md:right-10">
+                      <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-2 md:mb-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                        {study.cardTitle}
+                      </h3>
+                      <div className="h-[1px] w-0 group-hover:w-full bg-white/30 transition-all duration-700 mb-3 md:mb-4" />
+                      <p className="text-gray-400 text-[10px] md:text-xs lg:text-sm uppercase tracking-[0.2em] font-medium">
+                        {study.category}
+                      </p>
+                      <p
+                        className="mt-3 text-white/55 text-xs md:text-sm leading-relaxed max-w-[92%]"
+                        style={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {study.cardSummary}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {study.services.slice(0, 3).map((service) => (
+                          <span
+                            key={service}
+                            className="rounded-full border border-white/15 px-3 py-1 text-[9px] md:text-[10px] uppercase tracking-[0.14em] text-white/60"
+                          >
+                            {service}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
             </div>
-          </main>
-        ) : (
+
+            <div className="w-2 md:w-4 flex-shrink-0 h-1" />
+          </div>
+        </main>
+
+        {selectedStudy && (
           <main
             ref={detailRef}
             className="fixed inset-0 z-[45] overflow-y-auto bg-black text-white no-scrollbar"
             data-lenis-prevent
           >
+            <div className="case-open-logo pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-black">
+              <img
+                src={brandestinyLogo}
+                alt=""
+                className="w-28 md:w-40 select-none"
+                style={{ filter: "invert(1) brightness(2.4) contrast(1.15)" }}
+                aria-hidden="true"
+              />
+            </div>
+
             <button
               type="button"
               onClick={closeStudy}
@@ -514,38 +563,39 @@ const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
               <X className="h-5 w-5" />
             </button>
 
-            <section className="min-h-screen px-6 md:px-12 lg:px-20 flex flex-col justify-end pb-12 md:pb-20 relative overflow-hidden">
-              {selectedStudy.videos[0] && (
-                <video
-                  src={selectedStudy.videos[0]}
-                  className="absolute inset-0 w-full h-full object-cover opacity-35"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/30" />
-              <button
-                type="button"
-                onClick={closeStudy}
-                className="relative z-10 self-start mb-12 inline-flex items-center gap-3 text-white/60 hover:text-white transition-colors text-xs uppercase tracking-[0.2em] font-bold"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                All {isBlog ? "blog" : "case studies"}
-              </button>
-              <div className="relative z-10 max-w-5xl">
-                <p className="text-white/45 text-xs md:text-sm uppercase tracking-[0.3em] font-bold mb-5">
-                  {selectedStudy.category}
-                </p>
-                <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-8">
-                  {selectedStudy.title}
-                </h1>
-                <p className="max-w-2xl text-white/70 text-lg md:text-2xl leading-relaxed">
-                  {selectedStudy.summary}
-                </p>
-              </div>
-            </section>
+            <div className="case-detail-shell">
+              <section className="min-h-screen px-6 md:px-12 lg:px-20 flex flex-col justify-end pb-12 md:pb-20 relative overflow-hidden">
+                {selectedStudy.videos[0] && (
+                  <video
+                    src={selectedStudy.videos[0]}
+                    className="absolute inset-0 w-full h-full object-cover opacity-35"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/30" />
+                <button
+                  type="button"
+                  onClick={closeStudy}
+                  className="relative z-10 self-start mb-12 inline-flex items-center gap-3 text-white/60 hover:text-white transition-colors text-xs uppercase tracking-[0.2em] font-bold"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  All {isBlog ? "blog" : "case studies"}
+                </button>
+                <div className="relative z-10 max-w-5xl">
+                  <p className="text-white/45 text-xs md:text-sm uppercase tracking-[0.3em] font-bold mb-5">
+                    {selectedStudy.category}
+                  </p>
+                  <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight mb-8">
+                    {selectedStudy.title}
+                  </h1>
+                  <p className="max-w-2xl text-white/70 text-lg md:text-2xl leading-relaxed">
+                    {selectedStudy.summary}
+                  </p>
+                </div>
+              </section>
 
             <section className="px-6 md:px-12 lg:px-20 py-16 md:py-28">
               <div className="flex flex-col gap-16 md:gap-28">
@@ -603,6 +653,44 @@ const CaseStudies = ({ pageType = "case-studies" }: CaseStudiesProps) => {
                 })}
               </div>
             </section>
+
+              <section className="overflow-hidden px-6 md:px-12 lg:px-20 pb-20 md:pb-32">
+                <div className="border-t border-white/10 pt-10 md:pt-14">
+                  <div className="marquee-track mb-14 md:mb-20">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-8 mx-8 flex-shrink-0">
+                        <span
+                          className="font-display text-white/70 font-bold whitespace-nowrap tracking-tight"
+                          style={{ fontSize: "clamp(4rem, 8vw, 8rem)" }}
+                        >
+                          BRANDESTINY
+                        </span>
+                        <img
+                          src={footerLogo}
+                          alt="Brandestiny mark"
+                          className="w-16 h-16 md:w-20 md:h-20 object-contain flex-shrink-0 opacity-80"
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mx-auto flex min-h-[260px] max-w-5xl flex-col items-center justify-center gap-8 text-center">
+                    <h2 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-none text-white">
+                      Let's Go Beyond the Stars
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={handleLetsConnect}
+                      className="inline-flex items-center gap-3 rounded-full bg-[#fde3c6] px-7 py-4 text-[12px] font-bold uppercase tracking-[0.18em] text-black transition-transform duration-300 hover:scale-105"
+                    >
+                      Let's Connect
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
           </main>
         )}
 
